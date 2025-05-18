@@ -1,0 +1,567 @@
+{
+  "name": "face_swap_video_generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {},
+            {
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2460,
+        -320
+      ],
+      "id": "1902766d-ef97-48b3-9a58-4f63d46c2a23",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "prompt": "A professional-looking individual featured in a futuristic marketing video. Their appearance is clean, modern, and brand-neutral — ideal for face-swapping automation.\n\nThey wear {pick one: a minimalist blazer and casual tee | a smart polo and jeans | business-casual attire in neutral tones}. Their expression is focused, approachable, and confident.\n\nThe scene is set in {pick one: a modern digital office with ambient lighting | a creative studio filled with light panels and screens | a tech startup space with digital boards and devices | a branded content shoot area with camera and lighting gear}.\n\nTheir posture is natural and professional:  \n{pick one: standing while delivering a pitch to camera | smiling while reviewing analytics on a tablet | holding a product while nodding subtly | sitting with folded arms and a soft confident smile | walking toward the camera with light background motion}.\n\nLighting is {pick one: soft daylight with subtle lens flares | controlled studio lighting with high clarity | ambient neon-style lighting for modern effect}.\n\nThe background may include {pick one: a softly blurred logo wall | data visualization screens | subtle branded animations | a clean, minimalistic gradient}.\n\n**Ultra-realistic, 8K UHD, clean facial details, single-subject frame, ideal for AI-generated marketing and content videos.**\n",
+        "options": {
+          "size": "1024x1024",
+          "returnImageUrls": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -2260,
+        -320
+      ],
+      "id": "22449596-fa4f-4266-b790-aca19fd73b51",
+      "name": "OpenAI Generate Image",
+      "credentials": {
+        "openAiApi": {
+          "id": "d3fwNVP3LxSXC9kj",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2060,
+        -320
+      ],
+      "id": "c7a3fd35-b4e4-4676-b1e9-7e6a4b2fc048",
+      "name": "HTTP Request  Upload Image to IMGBB",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.imgbb.com/1/upload",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "05b20eca87cc5080bcfc79a83f6abd01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=image",
+              "value": "={{ $('OpenAI Generate Image').item.json.url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1860,
+        -320
+      ],
+      "id": "7d35cc08-3ef9-4772-8e8e-a19eede58c4d",
+      "name": "HTTP Request1 Extract Image URL"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d4f97a8c-f542-4618-883b-8a455c61f46c",
+              "name": "uploaded_image_url",
+              "value": "={{ $json.data.display_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1640,
+        -320
+      ],
+      "id": "9cd11b3a-52f8-4553-abf8-bc0c2346b7f4",
+      "name": "Edit Fields  Format Image Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.piapi.ai/api/v1/task",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "3fa8e7ae44195fb2fe66ec953e1e0986f4e5ff4a2964df3283fd135766448f48"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "Qubico/image-toolkit"
+            },
+            {
+              "name": "task_type",
+              "value": "face-swap"
+            },
+            {
+              "name": "input",
+              "value": "={{ { \"target_image\": $json.uploaded_image_url, \"swap_image\": \"https://i.postimg.cc/nz8rdYcx/AS-Source-image.jpg\" } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1400,
+        -320
+      ],
+      "id": "ca6d5720-4e5a-43b3-af8f-e6733377b641",
+      "name": "HTTP Request2 Face Swap (PIPI AI)",
+      "retryOnFail": false,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1160,
+        -320
+      ],
+      "id": "9501b87c-915d-4dd7-8c13-befac974dc0b",
+      "name": "Wait for Processing (20s)",
+      "webhookId": "0654eed9-ec33-42b9-bd2d-41cde98d93ab"
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        -320
+      ],
+      "id": "8d3681c8-5d91-471d-b123-6ff15a2680f1",
+      "name": "Wait 20 sec",
+      "webhookId": "ee1cc3fc-f07b-4de0-a60c-8af4baf663ea"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dev.runwayml.com/v1/image_to_video",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer key_d4e9246ca35208a52ce503b69da47685d2107ea3999ffe73c9af1d57bef9a91a0ae7bb0ff97a7c645ffe3316771c347c4b18edbb8a265d7a3f8bd7032bf4ee74"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Runway-Version",
+              "value": "2024-11-06"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "promptImage",
+              "value": "={{ $('HTTP Request3 Fetch Face-Swapped Image (PiAPI)').item.json.data.output.image_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.message.content }}"
+            },
+            {
+              "name": "prompt_text",
+              "value": "={{ $('OpenAI runway prompt').item.json.message.content }}"
+            },
+            {
+              "name": "promptText",
+              "value": "Describe your video transformation"
+            },
+            {
+              "name": "watermark",
+              "value": false
+            },
+            {
+              "name": "duration",
+              "value": 5
+            },
+            {
+              "name": "ratio",
+              "value": "768:1280"
+            },
+            {
+              "name": "model",
+              "value": "gen3a_turbo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        -320
+      ],
+      "id": "209fac95-c172-426b-af10-4e3db1bcf236",
+      "name": "HTTP Request6 Generate Video (RunwayML)1"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4-turbo",
+          "mode": "list",
+          "cachedResultName": "GPT-4-TURBO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Generate a short, engaging caption for a high-quality promotional video designed for Instagram or YouTube Shorts.\n\nEach caption should feel modern, creative, and brand-ready — ideal for businesses in marketing, tech, automation, or innovation.\nUse a tone that’s confident, slightly playful or mysterious, and fits a forward-thinking company or creator.\n\nAt the end, always include:\n\n✅ A call to action (e.g. “Check out the link in bio” or “Watch the full video now”)\n\n✅ 5–8 hashtags (mix of trending, niche, and brand-relevant)\n\n❌ Do not mention “AI”, “virtual model”, or anything unrealistic\n✅ Captions must feel human, relevant, and social-media friendly\n\n✅ Example Outputs:\nWhen your workflow runs smoother than your morning coffee ☕\nAutomation has never looked this good.\n🔗 Check out the link in bio!\n#MarketingFlow #ContentThatWorks #WorkflowMagic #SmartMove #InstaReady #ModernTools\n\nThis isn't just a video — it's a blueprint for scaling smarter.\nYou watching or catching up later? 😉\n🔗 Watch the full reel now!\n#StartupMode #VisualMarketing #AutomateBetter #BrandVibes #CleanEdits #NextStepGrowth\n\nNumbers don’t lie. But they do look better in motion.\nMake your message move.\n🔗 Link in bio!\n#DataDrivenDesign #VideoMarketing #CreativeTech #InstaGrowth #BrandBuilder #FuturisticFeels"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -480,
+        -320
+      ],
+      "id": "af82621f-f0e5-4f25-80de-a1cf24cb086e",
+      "name": "OpenAI1 video caption",
+      "credentials": {
+        "openAiApi": {
+          "id": "d3fwNVP3LxSXC9kj",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4-turbo",
+          "mode": "list",
+          "cachedResultName": "GPT-4-TURBO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a creative director generating descriptions for AI-generated promotional video animations.\nEach video should feature a professional-looking individual engaging in smooth, confident movements relevant to technology, marketing, or business themes.\n\nDescribe the scene in cinematic detail — include lighting, movement, environment, and camera motion.\nKeep each prompt concise, realistic, and easy for AI tools to animate.\nDo not mention brands, names, or gender — keep it neutral for face-swap use.\n\n✅ Example Outputs:\nA person stands in a digital studio filled with floating screens. Soft blue light illuminates their face. They swipe a holographic display, then confidently turn toward the camera as it tracks in slowly from the side.\n\nUnder ambient lighting in a high-tech workspace, the subject scrolls through data on a floating tablet. They pause, nod, then begin walking forward while background visuals fade into motion graphics.\n\nIn a minimal product launch set, the camera pushes in slowly as the person gestures toward a glowing screen. They glance at the camera with a slight smile, then turn to walk toward a backlit display wall.\n\nA modern office backdrop glows with cool lighting. The individual straightens their blazer, checks their smartwatch, and walks forward toward a glass wall, where reflections shimmer as the camera follows from behind.\n\nIn a neon-lit corridor with soft reflections, the subject walks confidently while projected charts float around them. The camera glides alongside, capturing subtle movements of their hands as they interact with the visuals.\n\n🔹 Each time, generate a fresh business/tech-themed cinematic scenario\n🔹 Movements should be smooth, natural, and confidently performed\n🔹 Environment must be futuristic or modern (no fantasy or fashion-based settings)\n🔹 Ideal for AI-generated face-swap marketing videos"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -780,
+        -320
+      ],
+      "id": "4fe56883-252f-4a08-81fb-53ebbe3b7e92",
+      "name": "OpenAI runway prompt",
+      "credentials": {
+        "openAiApi": {
+          "id": "d3fwNVP3LxSXC9kj",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.piapi.ai/api/v1/task/{{ $json.data.task_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "3fa8e7ae44195fb2fe66ec953e1e0986f4e5ff4a2964df3283fd135766448f48"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -940,
+        -320
+      ],
+      "id": "22a38b76-dc6b-4027-841d-81173b4452fd",
+      "name": "HTTP Request3 Fetch Face-Swapped Image (PiAPI)"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.dev.runwayml.com/v1/tasks/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer key_d4e9246ca35208a52ce503b69da47685d2107ea3999ffe73c9af1d57bef9a91a0ae7bb0ff97a7c645ffe3316771c347c4b18edbb8a265d7a3f8bd7032bf4ee74"
+            },
+            {
+              "name": "X-Runway-Version",
+              "value": "2024-11-06"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        -320
+      ],
+      "id": "3902d607-c81d-47ae-91d3-bff480353c6d",
+      "name": "HTTP Request1 - Getting video from RunwayML"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hook.eu2.make.com/vpelgcegxvtwv498xkiusb4friqtk18h",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "video_url",
+              "value": "={{ $json.output[0] }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $('OpenAI1 video caption').item.json.message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        -320
+      ],
+      "id": "47a9bdcd-6231-4123-947f-dffe0195de3e",
+      "name": "HTTP Request1 - Send to make.com"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Generate Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Generate Image": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request  Upload Image to IMGBB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request  Upload Image to IMGBB": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1 Extract Image URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1 Extract Image URL": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields  Format Image Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields  Format Image Data": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2 Face Swap (PIPI AI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2 Face Swap (PIPI AI)": {
+      "main": [
+        [
+          {
+            "node": "Wait for Processing (20s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Processing (20s)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3 Fetch Face-Swapped Image (PiAPI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 20 sec": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1 - Getting video from RunwayML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request6 Generate Video (RunwayML)1": {
+      "main": [
+        [
+          {
+            "node": "Wait 20 sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI1 video caption": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request6 Generate Video (RunwayML)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI runway prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI1 video caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3 Fetch Face-Swapped Image (PiAPI)": {
+      "main": [
+        [
+          {
+            "node": "OpenAI runway prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1 - Getting video from RunwayML": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1 - Send to make.com",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "51087467-9e03-464a-9582-93e35d737b72",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bb2afebf2692084e1558879c6c1825a9aad7f5800aaf60ecc21f9990064ffec6"
+  },
+  "id": "hURWIoK5B1v9x0gr",
+  "tags": []
+}
